@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: jdk-${{ matrix.java }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '16.0.2', '17.0.2' ]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: javac
+        run: "javac  -d ./mods module-info.java example/Main.java example/Secondary.java"
+
+      - name: jlink
+        run: "jlink --module-path ./mods --add-modules example --output ./image"
+
+      - name: jpackage
+        run: "jpackage --verbose --dest pkg --name main --module example/example.Main --runtime-image ./image --add-launcher secondary=./secondary.properties"
